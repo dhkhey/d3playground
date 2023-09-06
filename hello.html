@@ -49,9 +49,58 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const chords = chord(matrix);
 
-        const gArc = svg.append("g")
-            // ... [rest of the code remains unchanged]
-    });
+        
+    const gArc = svg.append("g")
+        .selectAll("path")
+        .data(chords.groups)
+        .enter().append("path")
+        .style("fill", d => colorScale(d.value))
+        .style("stroke", d => d3.rgb(colorScale(d.value)).darker())
+        .attr("d", arc);
+
+    const gChord = svg.append("g")
+        .attr("fill-opacity", 0.67)
+        .selectAll("path")
+        .data(chords)
+        .enter().append("path")
+        .attr("d", ribbon)
+        .style("fill", d => colorScale(d.source.value))
+        .style("stroke", d => d3.rgb(colorScale(d.source.value)).darker())
+        .on("mouseover", function(event, d) {
+            gChord.style("opacity", 0.1);
+            d3.select(this).style("opacity", 1).style("fill", "#AEDFF7");  // Pastel blue highlight
+            gArc.filter(arc => arc.index === d.source.index || arc.index === d.target.index)
+                .style("fill", "#AEDFF7");  // Pastel blue highlight for arcs
+
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", 1);
+            tooltip.html(`Similarity between ${labels[d.source.index]} and ${labels[d.target.index]}: ${d.source.value}`)
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function() {
+            gChord.style("opacity", 1).style("fill", d => colorScale(d.source.value));
+            gArc.style("fill", d => colorScale(d.value)).style("stroke", d => d3.rgb(colorScale(d.value)).darker());
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        });
+
+    // Add labels for each requirement
+    svg.append("g")
+        .selectAll("text")
+        .data(chords.groups)
+        .enter().append("text")
+        .each(d => { d.angle = (d.startAngle + d.endAngle) / 2; })
+        .attr("dy", ".35em")
+        .attr("transform", d => `
+            rotate(${(d.angle * 180 / Math.PI - 90)})
+            translate(${outerRadius + 10})
+            ${d.angle > Math.PI ? "rotate(180)" : ""}
+        `)
+        .attr("text-anchor", d => d.angle > Math.PI ? "end" : null)
+        .text(d => labels[d.index]);
 });
 </script>
 
