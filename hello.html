@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>D3 Chord Diagram from CSV</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 4px;
+            background: #fff;
+            border: 1px solid #000;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const width = 700;
+    const height = 700;
+    const outerRadius = Math.min(width, height) * 0.5 - 40;
+    const innerRadius = outerRadius - 30;
+
+    // Use pastel shades
+    const colorScale = d3.scaleSequential(d3.interpolateRgbBasis(["#FFB6C1", "#FFDAB9", "#E6E6FA", "#B0E0E6", "#98FB98"])).domain([1, 0]);
+
+    const chord = d3.chord().padAngle(0.05).sortSubgroups(d3.descending);
+    const arc = d3.arc().innerRadius(innerRadius).outerRadius(outerRadius);
+    const ribbon = d3.ribbon().radius(innerRadius);
+
+    const svg = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    d3.csv("similarity.csv").then(data => {
+        // Convert the CSV rows to a matrix
+        const matrix = data.map(row => Object.values(row).slice(1).map(Number));
+        const labels = Object.keys(data[0]).slice(1);
+
+        const chords = chord(matrix);
+
+        const gArc = svg.append("g")
+            // ... [rest of the code remains unchanged]
+    });
+});
+</script>
+
+</body>
+</html>
