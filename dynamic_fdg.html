@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Force-Directed Graph</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .tooltip {
+            opacity: 0;
+            background-color: white;
+            border: solid;
+            border-width: 1px;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+
+<script>
+    d3.csv("similarity.csv").then(function(data) {
+        // Convert data to matrix format
+        let matrix = [Object.keys(data[0])];
+        data.forEach(row => {
+            matrix.push(Object.values(row));
+        });
+
+        // Extract nodes from matrix
+        let nodes = matrix[0].slice(1).map((name, index) => ({ id: index, name: name }));
+
+        // Extract links from matrix
+        let threshold = 0.5;
+        let links = [];
+
+        for (let i = 1; i < matrix.length; i++) {
+            for (let j = 1; j < matrix[i].length; j++) {
+                if (i != j && matrix[i][j] > threshold) {
+                    links.push({
+                        source: i - 1,
+                        target: j - 1,
+                        value: parseFloat(matrix[i][j])
+                    });
+                }
+            }
+        }
+
+        // SVG dimensions
+    let width = 800;
+    let height = 800;
+
+    // Create the SVG
+    let svg = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    // Create a tooltip div
+    let tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "1px")
+        .style("border-radius", "5px")
+        .style("padding", "5px")
+        .style("position", "absolute");
+
+    // Link color scale
+    let linkColorScale = d3.scaleSequential(d3.interpolateBlues)
+        .domain([0, 1]);
+
+    // Update the link attributes, add mouse event listeners for hover
+    let link = svg.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(links)
+        .enter().append("line")
+        .attr("stroke-width", d => Math.sqrt(d.value * 10))
+        .attr("stroke", d => linkColorScale(d.value))
+        .on("mouseover", function(event, d) {
+            d3.select(this).attr("stroke-width", d => Math.sqrt(d.value * 20))
+                .attr("stroke", "red");
+
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html("Similarity: " + d.value.toFixed(2))
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(d) {
+            d3.select(this).attr("stroke-width", d => Math.sqrt(d.value * 10))
+                .attr("stroke", d => linkColorScale(d.value));
+
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        });
+
+    // Node color scale
+    let nodeColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+    // Update the node attributes
+    let node = svg.append("g")
+        .attr("class", "nodes")
+        .selectAll("circle")
+        .data(nodes)
+        .enter().append("circle")
+        .attr("r", 5)
+        .attr("fill", d => nodeColorScale(d.id))
+        .on("mouseover", function(event, d) {
+            d3.select(this).attr("fill", "red");
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html("Requirement: " + d.name)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(d) {
+            d3.select(this).attr("fill", d => nodeColorScale(d.id));
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        })
+        .call(d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended));
+
+    // Create the force simulation
+    let simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).distance(200).strength(0.5))
+        .force("charge", d3.forceManyBody().strength(-500))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .on("tick", ticked);
+
+    function ticked() {
+        link
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        node
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+    }
+
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+
+    }).catch(function(error) {
+        console.error("Error loading CSV file:", error);
+    });
+
+
+</script>
+
+</body>
+</html>

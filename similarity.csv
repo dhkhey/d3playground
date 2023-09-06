@@ -1,0 +1,5 @@
+,Requirement A,Requirement B,Requirement C,Requirement D
+Requirement A,1,0.2,0.5,0.7
+Requirement B,0.2,1,0.4,0.3
+Requirement C,0.5,0.4,1,0.8
+Requirement D,0.7,0.3,0.8,1
