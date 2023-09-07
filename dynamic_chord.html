@@ -20,8 +20,8 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const width = 700;
-    const height = 700;
+    const width = 1500;
+    const height = 1500;
     const outerRadius = Math.min(width, height) * 0.5 - 40;
     const innerRadius = outerRadius - 30;
 
@@ -42,10 +42,23 @@ document.addEventListener("DOMContentLoaded", function() {
         .attr("class", "tooltip")
         .style("opacity", 0);
 
-    d3.csv("similarity.csv").then(data => {
+    d3.csv("similarity_matrix.csv").then(data => {
         // Convert the CSV rows to a matrix
-        const matrix = data.map(row => Object.values(row).slice(1).map(Number));
-        const labels = Object.keys(data[0]).slice(1);
+        // Initial conversion
+        let rawMatrix = data.map(row => Object.values(row).slice(1).map(Number));
+        let labels = Object.keys(data[0]).slice(1);
+
+        // Filter out rows with no connections
+        let activeIndices = [];
+        rawMatrix = rawMatrix.filter((row, rowIndex) => {
+            let hasConnection = row.some(val => val > 0.99);
+            if (hasConnection) activeIndices.push(rowIndex);
+            return hasConnection;
+        });
+
+        // Filter out columns without connections
+        const matrix = rawMatrix.map(row => activeIndices.map(index => Number(row[index]) > 0.99 ? Number(row[index]) : 0));
+        labels = activeIndices.map(index => labels[index]);
 
         const chords = chord(matrix);
 
@@ -56,6 +69,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .style("fill", d => colorScale(d.value))
             .style("stroke", d => d3.rgb(colorScale(d.value)).darker())
             .attr("d", arc);
+
 
         const gChord = svg.append("g")
             .attr("fill-opacity", 0.67)
@@ -85,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .duration(500)
                     .style("opacity", 0);
             });
-
+        
         // Add labels for each requirement
         svg.append("g")
             .selectAll("text")
