@@ -20,8 +20,8 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const width = 1500;
-    const height = 1500;
+    const width = 1000;
+    const height = 1000;
     const outerRadius = Math.min(width, height) * 0.5 - 40;
     const innerRadius = outerRadius - 30;
 
@@ -42,22 +42,26 @@ document.addEventListener("DOMContentLoaded", function() {
         .attr("class", "tooltip")
         .style("opacity", 0);
 
-    d3.csv("similarity_matrix.csv").then(data => {
+    d3.csv("similarity.csv").then(data => {
         // Convert the CSV rows to a matrix
         // Initial conversion
         let rawMatrix = data.map(row => Object.values(row).slice(1).map(Number));
         let labels = Object.keys(data[0]).slice(1);
+        for (let i = 0; i < rawMatrix.length; i++) {
+            rawMatrix[i][i] = 0; // Set the diagonal elements to 0 to remove self-connections
+        }
+        let threshold = 0.5
 
         // Filter out rows with no connections
         let activeIndices = [];
         rawMatrix = rawMatrix.filter((row, rowIndex) => {
-            let hasConnection = row.some(val => val > 0.99);
+            let hasConnection = row.some(val => val > threshold);
             if (hasConnection) activeIndices.push(rowIndex);
             return hasConnection;
         });
 
         // Filter out columns without connections
-        const matrix = rawMatrix.map(row => activeIndices.map(index => Number(row[index]) > 0.99 ? Number(row[index]) : 0));
+        const matrix = rawMatrix.map(row => activeIndices.map(index => Number(row[index]) > threshold ? Number(row[index]) : 0));
         labels = activeIndices.map(index => labels[index]);
 
         const chords = chord(matrix);
